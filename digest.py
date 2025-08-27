@@ -372,6 +372,8 @@ async def load_and_summarize(pdf_link:str, max_tokens=250) -> str:
                 prompt = f"""
                     Summarize the following text in a simple and concise manner and explain in physic meaning or philosophy. The summarization should make people understand the core concept in a succinct way,
                     no redundant prefix and suffix: \n\n{text}\n
+                    
+                    Summarize in five points.
                 """
                 try:
                     async with throttler:
@@ -469,7 +471,7 @@ def format_telegram_message(paper:dict) -> str:
     return msg
 
 
-async def main(queries=["llm security", "llm jailbreak", "ai agent"], path=folder_path/"known_ids.json"):
+async def main(queries=["ai agent"], path=folder_path/"known_ids.json"):
     global FREE_MODELS, SELECTED_MODEL
     import copy 
     previous_hist = copy.copy(HISTORIES)
