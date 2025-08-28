@@ -480,7 +480,7 @@ async def main(queries=["ai agent"], path=folder_path/"known_ids.json"):
     with open(folder_path/"useless_models.json", "w") as f:
         json.dump(useless_models, f, indent=4)
     SELECTED_MODEL = FREE_MODELS[0]["id"]
-    queries = ["+(all:security+OR+all:jailbreak)"]
+    #queries = ["+(all:security+OR+all:jailbreak)"]
     tasks = []
     for query in queries:
         tasks.append(extract_arxiv_papers(throttler_query, query))
