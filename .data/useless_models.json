@@ -2,5 +2,6 @@
     "google/gemini-2.5-pro-exp-03-25": 3,
     "deepseek/deepseek-v3-base:free": 0,
     "qwen/qwen3-coder:free": 3,
-    "tngtech/deepseek-r1t2-chimera:free": 2
+    "tngtech/deepseek-r1t2-chimera:free": 2,
+    "tngtech/deepseek-r1t-chimera:free": 1
 }
