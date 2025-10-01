@@ -373,10 +373,16 @@ async def load_and_summarize(pdf_link:str, max_tokens=250) -> str:
                     Summarize the following text in a simple and concise manner and explain in physic meaning or philosophy. The summarization should make people understand the core concept in a succinct way,
                     no redundant prefix and suffix: \n\n{text}\n
                     
-                    Summarize in five points.
+                    Summarize in five points below:
+                    1. Identified Problems
+                    2. Solutions to the Problems
+                    3. Results and Findings
+                    4. Innovations and Contributions
+                    5. Philosophical or Physical Implications
                 """
                 try:
                     async with throttler:
+                        logging.info(f"Using model: {FREE_MODELS[START_IDX]['id']}")
                         resp = await client.chat.completions.create(
                             model=FREE_MODELS[START_IDX]["id"],
                             messages=[
