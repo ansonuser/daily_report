@@ -7,5 +7,6 @@
     "mistralai/mistral-small-3.2-24b-instruct:free": 3,
     "meituan/longcat-flash-chat": 2,
     "deepseek/deepseek-chat-v3.1:free": 3,
-    "deepseek/deepseek-r1-0528-qwen3-8b:free": 1
+    "deepseek/deepseek-r1-0528-qwen3-8b:free": 1,
+    "meituan/longcat-flash-chat:free": 1
 }
