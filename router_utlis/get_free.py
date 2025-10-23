@@ -1,6 +1,7 @@
 import requests
 import os
 from dotenv import load_dotenv
+from collections import defaultdict
 # import pdb
 
 
@@ -9,9 +10,9 @@ load_dotenv()
 
 def score_model_for_summary(description: str) -> int:
     keywords = {
-        "instruct": 2,
-        "long-context": 2,
-        "reasoning": 2,
+        "instruct": 3,
+        "long-context": 3,
+        "reasoning": -3,
         "math": 1,
         "uncensored": -3,
         "jailbreak": -3
@@ -35,11 +36,11 @@ def get_free_models():
     }
     resp = requests.get(url, headers=headers)
     if resp.status_code != 200:
-        print(f"❌ Failed to fetch models: {resp.status_code}")
+        print(f"Failed to fetch models: {resp.status_code}")
         return []
 
     models = resp.json()
-    free_models = []
+    providers = defaultdict(list)
 
     # pdb.set_trace()
     for m in models["data"]:
@@ -47,7 +48,9 @@ def get_free_models():
         if m.get("pricing", {}).get("prompt") == '0' and m.get("pricing", {}).get("completion") == '0':
             score = score_model_for_summary(m.get("description", ""))
             if score > 2:
-                free_models.append({
+                model_id = m.get("id", "")
+                provider = model_id.split("/")[0] if "/" in model_id else "unknown"
+                providers[provider].append({
                     "id": m["id"],
                     "name": m.get("name", ""),
                     "description": m.get("description", ""),
@@ -55,8 +58,12 @@ def get_free_models():
                     "score": score
                 })
 
-    free_models.sort(key=lambda x: x["context_length"], reverse=True)
-    return free_models
+    for provider, models in providers.items():
+            models.sort(key=lambda x: x["context_length"], reverse=True)
+
+    # Sort providers by total models available
+    sorted_providers = dict(sorted(providers.items(), key=lambda kv: len(kv[1]), reverse=True))
+    return sorted_providers
 
 if __name__ == "__main__":
     free = get_free_models()

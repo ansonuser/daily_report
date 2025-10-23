@@ -12,6 +12,7 @@ from openai._exceptions import (
     APIConnectionError,
     APITimeoutError,
 )
+from typing import Deque, Optional
 from router_utlis.get_free import get_free_models
 from dotenv import load_dotenv
 import os
@@ -20,10 +21,11 @@ import pdb
 import time
 import html
 import re
-import os
 import asyncio
 from html import unescape
+from textwrap import dedent
 from typing import Tuple
+from collections import deque
 # import nest_asyncio
 from tenacity import (
     retry,
@@ -35,6 +37,13 @@ from asyncio_throttle import Throttler
 import aiohttp
 import logging
 import feedparser
+
+"""
+Assumption:
+15 pages in 2-column format <= 16000 words
+16000 words  * 4/3 <= 20000 tokens
+-> 4 chunks, 5000 tokens per chunk
+"""
 # nest_asyncio.apply()
 
 load_dotenv()
@@ -58,19 +67,23 @@ def log_retry_error(retry_state: RetryCallState):
     
 
 throttler_query = Throttler(rate_limit=3, period=15)
-throttler_summary = Throttler(rate_limit=3, period=600)
+throttler_summary = Throttler(rate_limit=20, period=60) # 20 qpm
 throttler_send = Throttler(rate_limit=1, period=1)
-
 
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 THROUGHPUT = 20000
-MAX_PAGE = 10
+MAX_PAGE = 15
+CHUNK_CHAR_LIMIT = 4000 
+MAX_CHUNKS = 6
+LONG_MEMORY_LIMIT = 5
+DAILY_SUMMARY_LIMIT = 10
+UNPROCESSED_PATH = folder_path / "unprocessed_papers.json"
 
 
 
-FREE_MODELS = get_free_models()
-SELECTED_MODEL = FREE_MODELS[0]["id"]
+FREE_MODELS = get_free_models() # provider : [model1, model2,...]
+
 
 try: 
     with open(folder_path/"known_ids.json", "r") as f:
@@ -107,7 +120,7 @@ async def is_model_callable(model_id:str)-> bool:
         )
         return True
     except Exception as e:
-        print(f"❌ Cannot use model {model_id}: {str(e)}")
+        print(f"Cannot use model {model_id}: {str(e)}")
         return False
     
 def load_useless(path=folder_path/"useless_models.json") -> dict:
@@ -119,31 +132,6 @@ def load_useless(path=folder_path/"useless_models.json") -> dict:
             return json.load(f)
     return {}
     # return ["google/gemini-2.5-pro-exp-03-25"]
-
-async def update_good_models(useless_models)-> Tuple[list, dict]:    
-    """Update the list of good models by checking their availability.
-    Args:
-        useless_models (dict): A dictionary of models that are not useful.  
-    Returns:
-        list: A list of available models that are not in the useless models.
-    """
-    cache = []
-    count = 0
-    
-    for free_model in FREE_MODELS:
-        if free_model["id"] not in useless_models or useless_models.get(free_model["id"], 0) < 3:
-            if await is_model_callable(free_model["id"]):
-                cache.append(free_model)
-                count += 1
-            else:
-                if free_model["id"] not in useless_models:
-                    useless_models[free_model["id"]] = 1
-                else:
-                    useless_models[free_model["id"]] += 1
-        # pdb.set_trace()
-        if count >= 3:
-            break
-    return cache, useless_models
     
 
 def parse_llm_response(resp) -> str:
@@ -151,7 +139,7 @@ def parse_llm_response(resp) -> str:
     適配新版 openai.ChatCompletion 回傳物件（Pydantic 模型）
     """
     if not resp or not resp.choices:
-        return "[❌ Invalid response structure]"
+        return "[Invalid response structure]"
     # pdb.set_trace()
     choice = resp.choices[0]
 
@@ -176,7 +164,192 @@ def parse_llm_response(resp) -> str:
     if hasattr(choice, "text") and choice.text.strip():
         return choice.text.strip()
 
-    return "[⚠️ No usable content in response]"
+    return "[No usable content in response]"
+
+
+def locate_references_section(text: str) -> int:
+    """
+    Locate the position of the references / bibliography heading if present.
+    Returns -1 when no heading is found.
+    """
+    normalized = text.replace("\r\n", "\n")
+    patterns = [
+        r"^\s*(?:\d+(\.\d+)*)?\s*references?\s*[:\-]?\s*$",
+        r"^\s*(?:\d+(\.\d+)*)?\s*bibliography\s*[:\-]?\s*$",
+        r"^\s*(?:\d+(\.\d+)*)?\s*reference\s+list\s*[:\-]?\s*$",
+    ]
+
+    for pattern in patterns:
+        regex = re.compile(pattern, re.IGNORECASE | re.MULTILINE)
+        match = regex.search(normalized)
+        if match:
+            return match.start()
+    return -1
+
+
+def trim_before_references(text: str) -> str:
+    """
+    Truncate the paper content once the References section is reached.
+    If no references heading is detected, the original text is returned.
+    """
+    normalized = text.replace("\r\n", "\n")
+    ref_idx = locate_references_section(normalized)
+    if ref_idx >= 0:
+        return normalized[:ref_idx]
+    return normalized
+
+
+def normalize_heading(heading: str) -> str:
+    cleaned = re.sub(r"\s+", " ", heading).strip()
+    cleaned = re.sub(r"^\d+(\.\d+)*\s*", "", cleaned)
+    cleaned = cleaned.rstrip(":")
+    return cleaned.title() if cleaned.isupper() else cleaned
+
+
+def extract_structured_chunks(
+    text: str,
+    chunk_size: int = CHUNK_CHAR_LIMIT,
+    max_chunks: int = MAX_CHUNKS,
+) -> list[dict[str, str]]:
+    """
+    Build structured chunks grouped by section headings, bounded by References.
+    """
+    if not text:
+        return []
+
+    truncated = trim_before_references(text)
+    paragraphs = re.split(r"\n{2,}", truncated)
+    current_paras: list[str] = []
+
+    for para in paragraphs:
+        cleaned = para.strip()
+        if not cleaned:
+            continue
+
+        current_paras.append(cleaned)
+
+
+    structured_chunks: list[dict[str, str]] = []
+
+    for paras in current_paras:
+        part_idx = 1
+        buffer: list[str] = []
+        buffer_len = 0
+
+        for para in paras:
+            candidate_len = buffer_len + len(para) + (2 if buffer else 0)
+            if candidate_len <= chunk_size:
+                buffer.append(para)
+                buffer_len = candidate_len
+            else:
+                if buffer:
+                    structured_chunks.append(
+                        {"content": "\n\n".join(buffer)}
+                    )
+                    if len(structured_chunks) >= max_chunks:
+                        return structured_chunks[:max_chunks]
+                    part_idx += 1
+                buffer = [para]
+                buffer_len = len(para)
+
+        if buffer:
+            structured_chunks.append({"content": "\n\n".join(buffer)})
+            if len(structured_chunks) >= max_chunks:
+                return structured_chunks[:max_chunks]
+
+    return structured_chunks[:max_chunks]
+
+
+def build_chunk_prompt(
+    query: str = '',
+    previous_keynote: Optional[Deque[str]] = None,
+    chunk: str = '',
+) -> str:
+    
+    previous_keynote = "\n\n".join(previous_keynote) if previous_keynote else "None"
+    return dedent(
+       f"""
+You are an expert research analyst extracting insights relevant to the research query: "{query}".
+
+You are given:
+1. The **keynote from the previous chunk**, summarizing what was discussed earlier.
+2. The **current chunk** of the paper.
+
+Your task:
+- Use the previous keynote as contextual memory to maintain continuity and avoid redundancy.
+- Extract from the current chunk **only the new or expanded information** that helps answer the research query.
+- Focus on **technical details**, **methodology**, **datasets**, **experimental setups**, **quantitative findings**, and **limitations**.
+- If the chunk mainly repeats information from the previous keynote, summarize only the *differences or elaborations*.
+- Be concise but technically precise — prefer numeric or mechanistic descriptions over generic phrases.
+- If the chunk contains no new relevant insight, respond with "No new relevant information."
+
+Previous Keynote:
+{previous_keynote}
+
+Current Chunk:
+{chunk}
+""")
+
+
+def build_refine_prompt(query: str, memory_snippets: list[str]) -> str:
+    formatted_snippets = "\n\n".join(
+        f"Snippet {i + 1}:\n{snippet}" for i, snippet in enumerate(memory_snippets)
+    )
+    return (
+        f"Using the collected insights below, synthesize a hierarchical summary that answers the query '{query}'. "
+        "Focus on clarity and avoid redundant wording. Provide the output in the following structure:\n"
+        "1. Identified Problems\n"
+        "2. Solutions to the Problems\n"
+        "3. Results and Findings\n"
+        "4. Innovations and Contributions\n"
+        "5. Philosophical or Physical Implications\n\n"
+        f"Collected insights:\n{formatted_snippets}"
+    )
+
+
+@retry(
+    wait=wait_exponential_jitter(initial=1, exp_base=2, jitter=2, max=10),
+    retry=retry_if_exception_type(retryable_exceptions),
+    after=log_retry_error,
+    reraise=True,
+)
+async def generate_completion(prompt: str, max_tokens: int, throttler: Throttler) -> str:
+    """
+    Wrapper around the OpenRouter client with retry, throttling, and
+    fallback across providers/models until one succeeds.
+    """
+    global START_IDX
+
+    providers = list(FREE_MODELS.keys())
+    n_providers = len(providers)
+    attempt = 0
+    max_attempt = 30
+    while True:
+        provider = providers[START_IDX % n_providers]
+        model_list = FREE_MODELS[provider]
+
+        for model_id in model_list:
+            try:
+                async with throttler:
+                    resp = await client.chat.completions.create(
+                        model=model_id,
+                        messages=[{"role": "user", "content": prompt}],
+                        max_tokens=max_tokens,
+                    )
+                START_IDX = (START_IDX + 1) % n_providers
+                return parse_llm_response(resp)
+
+            except Exception as e:
+                print(f"[WARN] {provider} → {model_id} failed: {e}")
+                await asyncio.sleep(1)  # short delay before trying next model
+
+        attempt += 1
+        if attempt > max_attempt:
+            return 'Fail to summary.'
+        
+        if attempt % n_providers == 0:
+            print("[INFO] All providers/models failed once — backing off...")
+            await asyncio.sleep(5)
 
 @retry(
 wait=wait_exponential_jitter(initial=1, exp_base=2, jitter=2, max=10),
@@ -198,10 +371,10 @@ async def download_and_extract_pdf_text(pdf_url:str):
         try:
             async with session.get(pdf_url, headers=HEADERS, timeout=aiohttp.ClientTimeout(total=15)) as response:
                 if response.status != 200:
-                    print("❌ Failed to download PDF:", response.status)
+                    print("Failed to download PDF:", response.status)
                     return None
                 else:
-                    print("✅ PDF downloaded successfully.")
+                    print("PDF downloaded successfully.")
                     content = await response.read()  # Ensure the response is fully read
                     pdf_file = BytesIO(content)
                     doc = fitz.open(stream=pdf_file, filetype="pdf")
@@ -232,7 +405,7 @@ async def extract_google_scholar_papers(throttler=throttler_query, query: str="l
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=HEADERS) as resp:
                 if resp.status != 200:
-                    print(f"❌ Failed to fetch papers: {resp.status}")
+                    print(f"Failed to fetch papers: {resp.status}")
                     return {}
                 
                 soup = BeautifulSoup(await resp.text(), "html.parser")
@@ -267,6 +440,7 @@ async def extract_google_scholar_papers(throttler=throttler_query, query: str="l
                     pdf_tag = r.select_one(".gs_or_ggsm a")
                     pdf_link = pdf_tag["href"] if pdf_tag else None
                     curr["pdf_link"] = pdf_link if pdf_link else "N/A"
+                    curr["query"] = query
                     print(curr)
                     print("-" * 80)
                     keynotes[p_id] = curr
@@ -304,7 +478,7 @@ async def extract_arxiv_papers(throttler=throttler_query, query: str="llm", max_
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 if resp.status != 200:
-                    print(f"❌ Failed to fetch arXiv papers: {resp.status}")
+                    print(f"Failed to fetch arXiv papers: {resp.status}")
                     return {}
 
                 text = await resp.text()
@@ -332,8 +506,9 @@ async def extract_arxiv_papers(throttler=throttler_query, query: str="llm", max_
 
                     keynotes[p_id] = {
                         "title": title,
-                        "abstract": summary,
-                        "pdf_link": pdf_link
+                        "summary": summary,
+                        "pdf_link": pdf_link,
+                        "query": query
                     }
 
                     print(keynotes[p_id])
@@ -344,68 +519,64 @@ async def extract_arxiv_papers(throttler=throttler_query, query: str="llm", max_
     return keynotes
 
 
-async def load_and_summarize(pdf_link:str, max_tokens=250) -> str:
+async def load_and_summarize(pdf_link: str, query: str, max_tokens: int = 300) -> Tuple[str, list[str]]:
     """Load a PDF from a link and summarize its content through Llms' apis.
 
     Args:
         pdf_link (str): The URL of the PDF file to load.
+        query (str): The guiding question used to focus the summary.
         max_tokens (int, optional): The maximum number of tokens for the summary. Defaults to 250.
 
     Returns:
-        str: The summarized content of the PDF or an error message.
+        Tuple[str, list[str]]: The refined summary and the long-memory snippets used to produce it.
     """
 
     if pdf_link != "N/A" and pdf_link is not None:
-        print(f"📄 PDF link: {pdf_link}")
+        print(f"PDF link: {pdf_link}")
 
         pdf_text = await download_and_extract_pdf_text(pdf_link)
-        # pdb.set_trace()
-        
-        @retry(
-        wait=wait_exponential_jitter(initial=1, exp_base=2, jitter=2, max=10),
-        retry=retry_if_exception_type(retryable_exceptions),
-        after=log_retry_error,
-        )
-        async def summarize(text, throttler=throttler_summary):
-            global START_IDX
-            if text:            
-                prompt = f"""
-                    Summarize the following text in a simple and concise manner and explain in physic meaning or philosophy. The summarization should make people understand the core concept in a succinct way,
-                    no redundant prefix and suffix: \n\n{text}\n
-                    
-                    Summarize in five points below:
-                    1. Identified Problems
-                    2. Solutions to the Problems
-                    3. Results and Findings
-                    4. Innovations and Contributions
-                    5. Philosophical or Physical Implications
-                """
-                try:
-                    async with throttler:
-                        logging.info(f"Using model: {FREE_MODELS[START_IDX]['id']}")
-                        resp = await client.chat.completions.create(
-                            model=FREE_MODELS[START_IDX]["id"],
-                            messages=[
-                                {"role": "user", "content": prompt}
-                            ],
-                            max_tokens=max_tokens
-                        )
-                        res = parse_llm_response(resp)
-                        # pdb.set_trace()
-                        print("[Info] Summary length:", len(res))
-                        return res
-                except Exception as e:
-                    print("Error summarizing PDF:", e)
-                    START_IDX = (START_IDX + 1) % len(FREE_MODELS)
-                return ""
-        if pdf_text is not None and len(pdf_text) > THROUGHPUT:
-            summarized_res = await summarize(pdf_text[:THROUGHPUT], throttler=throttler_summary)       
-            return summarized_res
-        else:
-            return ""
+        if not pdf_text:
+            return "", []
+
+        scoped_text = pdf_text[:THROUGHPUT]
+        text_chunks = extract_structured_chunks(scoped_text, CHUNK_CHAR_LIMIT, MAX_CHUNKS)
+        if not text_chunks:
+            return "", []
+
+        memory_queue: deque[str] = deque(maxlen=LONG_MEMORY_LIMIT)
+       
+   
+        for idx, chunk_info in enumerate(text_chunks):
+            prompt = build_chunk_prompt(
+                query,
+                memory_queue,
+                chunk_info["content"]
+            )
+            try:
+                chunk_summary = await generate_completion(prompt, max_tokens=300, throttler=throttler_summary)
+            except Exception as e:
+                print(f"Error summarizing chunk {idx + 1}: {e}")
+                continue
+
+            if chunk_summary:
+                snippet = f"{chunk_info['title']}:\n{chunk_summary}"
+                memory_queue.appendleft(snippet)
+
+        if not memory_queue:
+            return "", []
+
+        refine_prompt = build_refine_prompt(query, list(memory_queue))
+        try:
+            refined_summary = await generate_completion(refine_prompt, max_tokens=max_tokens, throttler=throttler_summary)
+            print("[Info] Refined summary length:", len(refined_summary))
+        except Exception as e:
+            print(f"Error refining summary: {e}")
+            refined_summary = "\n".join(list(memory_queue))
+
+        return refined_summary, list(memory_queue)
     else:
-        print("📄 PDF link: Not available")
-        return ""
+        print("PDF link: Not available")
+        return "", []
     
  
 
@@ -428,6 +599,24 @@ def save_articles(articles, path=folder_path/"known_articles.json"):
     with open(path, "w") as f:
         json.dump(articles, f)
 
+
+def load_unprocessed(path=UNPROCESSED_PATH) -> list:
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                return data
+    except FileNotFoundError:
+        return []
+    except json.JSONDecodeError:
+        return []
+    return []
+
+
+def save_unprocessed(entries: list, path=UNPROCESSED_PATH):
+    with open(path, "w") as f:
+        json.dump(entries, f, indent=4)
+
 async def send_telegram(throttler, msg:str):
     """Send a message to a Telegram chat.
 
@@ -442,9 +631,9 @@ async def send_telegram(throttler, msg:str):
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data={"chat_id": chat_id, "text": msg, "parse_mode": "MarkdownV2"}, timeout=10) as resp:
                 if resp.status != 200:
-                    print("❌ Failed to send message:", resp.status, await resp.text())
+                    print("Failed to send message:", resp.status, await resp.text())
                 else:
-                    print("✅ Message sent successfully.")
+                    print("Message sent successfully.")
                     await resp.text()
         
 
@@ -463,12 +652,12 @@ def format_telegram_message(paper:dict) -> str:
     """Format a paper's information into a Telegram message."""
     
     title = clean_telegram_text(paper.get("title", ""))
-    abstract = clean_telegram_text(paper.get("abstract", ""))
+    summary = clean_telegram_text(paper.get("summary", ""))
     pdf_link = paper.get("pdf_link", "")
     summary = paper.get("summary")
 
     msg = f"📄 *Title:* {title}\n"
-    msg += f"📝 *Abstract:* {abstract}\n"
+    msg += f"📝 *Abstract:* {summary}\n"
     msg += f"🔗 [PDF Link]({pdf_link})\n"
 
     if summary:
@@ -478,57 +667,112 @@ def format_telegram_message(paper:dict) -> str:
 
 
 async def main(queries=["ai agent"], path=folder_path/"known_ids.json"):
-    global FREE_MODELS, SELECTED_MODEL
-    import copy 
-    previous_hist = copy.copy(HISTORIES)
-    useless_models = load_useless()
-    FREE_MODELS, useless_models = await update_good_models(useless_models)
-    with open(folder_path/"useless_models.json", "w") as f:
-        json.dump(useless_models, f, indent=4)
-    SELECTED_MODEL = FREE_MODELS[0]["id"]
-    #queries = ["+(all:security+OR+all:jailbreak)"]
+    global START_IDX
+
+    START_IDX = 0
     tasks = []
     for query in queries:
         tasks.append(extract_arxiv_papers(throttler_query, query))
     parses = await asyncio.gather(*tasks)
     
-    all_papers = {}
+    new_papers = []
+    for query, parse in zip(queries, parses):
+        for p_id, info in parse.items():
+            if "query" not in info:
+                info["query"] = query
+            new_papers.append((p_id, info))
     
-    # // no summary parses
-    # for parse in parses:
-    #     all_papers.update(parse)
-    
-    #// for summary queries
-    summarize_tasks = []
-    p_ids = []
-    for parse in parses:
-        all_papers.update(parse)
-        for k, v in parse.items():
-            if v.get("pdf_link") and v.get("pdf_link") != "N/A":
-                summarize_tasks.append(load_and_summarize(v["pdf_link"]))
-                p_ids.append(k)
-    
-    summaries = await asyncio.gather(*summarize_tasks)
-    for p_id, summary in zip(p_ids, summaries):
-        all_papers[p_id]["summary"] = summary
-        
-    all_ids = set()
-    for id_ in all_papers.keys():
-        all_ids.add(id_)
-    all_ids = list(all_ids)
-    new_ids = list(previous_hist) + all_ids
-    if len(new_ids) > MAX_IDS:
-        new_ids = new_ids[-MAX_IDS:]
-    new_ids.sort()
+    unprocessed_entries = load_unprocessed()
+    backlog_queue = []
+    for entry in unprocessed_entries:
+        if isinstance(entry, dict) and "id" in entry and "paper" in entry:
+            backlog_queue.append((entry["id"], entry["paper"]))
 
+    new_pdf_candidates = []
+    new_non_pdf = []
+    for item in new_papers:
+        _, paper = item
+        if paper.get("pdf_link") and paper.get("pdf_link") != "N/A":
+            new_pdf_candidates.append(item)
+        else:
+            paper.setdefault("summary", "")
+            paper.setdefault("memory_snippets", [])
+            new_non_pdf.append(item)
+
+    available_slots = DAILY_SUMMARY_LIMIT
+    papers_to_process = []
+    remaining_new_pdf = []
+    for item in new_pdf_candidates:
+        if available_slots > 0:
+            papers_to_process.append(item)
+            available_slots -= 1
+        else:
+            remaining_new_pdf.append(item)
+
+    backlog_to_process = []
+    backlog_remaining = []
+    for entry in backlog_queue:
+        if available_slots > 0:
+            backlog_to_process.append(entry)
+            available_slots -= 1
+        else:
+            backlog_remaining.append(entry)
+
+    processing_targets = papers_to_process + backlog_to_process
+
+    finalized_papers = {}
+    finalized_order = []
+    for p_id, paper in new_non_pdf:
+        finalized_papers[p_id] = paper
+        finalized_order.append(p_id)
+
+    summary_targets = []
+    for p_id, paper in processing_targets:
+        if paper.get("pdf_link") and paper.get("pdf_link") != "N/A":
+            summary_targets.append((p_id, paper))
+        else:
+            paper.setdefault("summary", "")
+            paper.setdefault("memory_snippets", [])
+            finalized_papers[p_id] = paper
+            finalized_order.append(p_id)
+
+    summary_results = []
+    if summary_targets:
+        summary_tasks = [
+            load_and_summarize(
+                paper["pdf_link"],
+                paper.get("query", queries[0] if queries else ""),
+            )
+            for _, paper in summary_targets
+        ]
+        summary_results = await asyncio.gather(*summary_tasks, return_exceptions=True)
+
+    failed_targets = []
+    for (p_id, paper), result in zip(summary_targets, summary_results):
+        if isinstance(result, Exception):
+            print(f"Summary failed for paper {paper.get('title', 'N/A')}: {result}")
+            failed_targets.append((p_id, paper))
+            continue
+        summary, memory = result
+        paper["summary"] = summary
+        paper["memory_snippets"] = memory
+        finalized_papers[p_id] = paper
+        finalized_order.append(p_id)
+
+    pending_backlog_entries = backlog_remaining + remaining_new_pdf + failed_targets
+    save_unprocessed([{"id": pid, "paper": paper} for pid, paper in pending_backlog_entries])
+
+    known_ids = sorted(list(HISTORIES))[-MAX_IDS:]
     with open(path, "w") as f:
-        json.dump(list(new_ids), f, indent=4)
+        json.dump(known_ids, f, indent=4)
 
     send_tasks = []
-    for _,paper in all_papers.items():
+    for p_id in finalized_order:
+        paper = finalized_papers[p_id]
         formatted_msg = format_telegram_message(paper)
         send_tasks.append(send_telegram(throttler_send, formatted_msg))
-    await asyncio.gather(*send_tasks)
+    if send_tasks:
+        await asyncio.gather(*send_tasks)
     
 
 if __name__ == "__main__":
