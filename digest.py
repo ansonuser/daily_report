@@ -72,6 +72,7 @@ throttler_send = Throttler(rate_limit=1, period=1)
 
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
+LAST_WORKING_MODEL = None
 THROUGHPUT = 20000
 MAX_PAGE = 15
 CHUNK_CHAR_LIMIT = 4000 
@@ -315,42 +316,43 @@ def build_refine_prompt(query: str, memory_snippets: list[str]) -> str:
 )
 async def generate_completion(prompt: str, max_tokens: int, throttler: Throttler) -> str:
     """
-    Wrapper around the OpenRouter client with retry, throttling, and
-    fallback across providers/models until one succeeds.
+    Use the last known working model; if it fails, fallback to next available.
+    Retry transient errors with exponential backoff (handled by tenacity).
     """
-    global START_IDX
+    global START_IDX, LAST_WORKING_MODEL
 
     providers = list(FREE_MODELS.keys())
     n_providers = len(providers)
-    attempt = 0
-    max_attempt = 30
-    while True:
-        provider = providers[START_IDX % n_providers]
-        model_list = FREE_MODELS[provider]
 
-        for model_id in model_list:
-            try:
-                async with throttler:
-                    resp = await client.chat.completions.create(
-                        model=model_id,
-                        messages=[{"role": "user", "content": prompt}],
-                        max_tokens=max_tokens,
-                    )
-                START_IDX = (START_IDX + 1) % n_providers
-                return parse_llm_response(resp)
+    
+    # Try cached working model first
+    candidate_models = []
+    if LAST_WORKING_MODEL:
+        candidate_models.append(LAST_WORKING_MODEL)
+    # Then all others in deterministic round-robin order
+    for i in range(n_providers):
+        provider = providers[(START_IDX + i) % n_providers]
+        candidate_models.extend(FREE_MODELS[provider])
 
-            except Exception as e:
-                print(f"[WARN] {provider} → {model_id} failed: {e}")
-                await asyncio.sleep(1)  # short delay before trying next model
+    for model_id in candidate_models:
+        try:
+            async with throttler:
+                resp = await client.chat.completions.create(
+                    model=model_id,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=max_tokens,
+                )
+         
+            LAST_WORKING_MODEL = model_id
+            START_IDX = (START_IDX + 1) % n_providers
+            return parse_llm_response(resp)
 
-        attempt += 1
-        if attempt > max_attempt:
-            return 'Fail to summary.'
-        
-        if attempt % n_providers == 0:
-            print("[INFO] All providers/models failed once — backing off...")
-            await asyncio.sleep(5)
-
+        except Exception as e:
+            print(f"[WARN] {model_id} failed: {e}")
+            await asyncio.sleep(1)  # small cooldown before next model
+            continue
+    return ""
+    
 @retry(
 wait=wait_exponential_jitter(initial=1, exp_base=2, jitter=2, max=10),
 after=log_retry_error,
