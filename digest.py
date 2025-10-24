@@ -80,7 +80,7 @@ CHUNK_CHAR_LIMIT = 4000
 MAX_CHUNKS = 6
 LONG_MEMORY_LIMIT = 5
 DAILY_SUMMARY_LIMIT = 10
-MAX_TOKENS = 800
+MAX_TOKENS = 500
 UNPROCESSED_PATH = folder_path / "unprocessed_papers.json"
 
 
@@ -345,8 +345,9 @@ def build_refine_prompt( memory_snippets: list[str]) -> str:
         "3. Results and Findings\n"
         "4. Innovations and Contributions\n"
         "5. Philosophical or Physical Implications\n\n"
+        
         "Each point should have no more than two sub-items."
-        "Each point should have no more than 100 words."
+        "Each point should have no more than 50 words."
         f"Collected insights:\n{formatted_snippets}"
     )
 
@@ -722,7 +723,7 @@ def format_telegram_message(paper:dict) -> str:
     msg += f"🔗 [PDF Link]({pdf_link})\n"
 
     if summary:
-        msg += f"🧠 *Summary:* {clean_telegram_text(summary)}\n"
+        msg += f"🧠 *Summary:* \n {clean_telegram_text(summary)}\n"
 
     return msg
 
