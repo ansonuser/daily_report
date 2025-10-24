@@ -312,8 +312,9 @@ Your task:
 - Focus on **technical details**, **methodology**, **datasets**, **experimental setups**, **quantitative findings**, and **limitations**.
 - If the chunk mainly repeats information from the previous keynote, summarize only the *differences or elaborations*.
 - Be concise but technically precise — prefer numeric or mechanistic descriptions over generic phrases.
-- If the chunk contains no new relevant insight, respond with "No new relevant information."
+- If the chunk contains no new relevant insight, simply set is_relevants to false.
 
+Do not use nested layer in notes. Use plain text description.
 Output JSON Format Only.
 
 Example Output:
@@ -366,7 +367,7 @@ def toknow():
     after=log_retry_error,
     reraise=True,
 )
-async def generate_completion(prompt: str, max_tokens: int, throttler: Throttler) -> str:
+async def generate_completion(prompt: str, max_tokens: int, throttler: Throttler, is_json = False) -> str:
     """
     Use the last known working model; if it fails, fallback to next available.
     Retry transient errors with exponential backoff (handled by tenacity).
@@ -398,7 +399,11 @@ async def generate_completion(prompt: str, max_tokens: int, throttler: Throttler
          
             LAST_WORKING_MODEL = model_id
             START_IDX = (START_IDX + 1) % n_providers
-            return parse_llm_response(resp)
+            chunk_summary = parse_llm_response(resp)
+            if is_json:
+                return extract_json(chunk_summary)
+            else:
+                return chunk_summary
 
         except Exception as e:
             print(f"[WARN] {model_id} failed: {e}")
@@ -608,8 +613,8 @@ async def load_and_summarize(pdf_link: str, max_tokens: int = 300) -> Tuple[str,
                 chunk_info["content"]
             )
             try:
-                chunk_summary = await generate_completion(prompt, max_tokens=300, throttler=throttler_summary)
-                json_keynotes = extract_json(chunk_summary)
+                json_keynotes = await generate_completion(prompt, max_tokens=300, throttler=throttler_summary, is_json=True)
+                
             except Exception as e:
                 print(f"Error summarizing chunk {idx + 1}: {e}")
                 continue
