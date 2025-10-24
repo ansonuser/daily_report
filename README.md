@@ -37,6 +37,77 @@ This project automates the process of extracting, summarizing, and sending resea
    api_base_url=YOUR_OPENAI_API_BASE_URL (optional)
    ```
 
+## Framework
+
+```mermaid
+
+flowchart TD
+
+%% ====== DATA SOURCES ======
+A1["(arXiv API)"]
+A2["(Google Scholar HTML)"]
+
+subgraph INPUT["Data Acquisition Layer"]
+    A1 --> B1["extract_arxiv_papers()"]
+    A2 --> B2["extract_google_scholar_papers()"]
+    B1 & B2 --> C1["Paper Queue (new + backlog)"]
+end
+
+%% ====== MODEL MANAGEMENT ======
+subgraph MODELS["Model Selection Layer"]
+    M1["get_free_models()"]
+    M2["score_model_for_summary(description)"]
+    M1 --> M2
+    M2 --> M3["Rank + Filter free models"]
+    M3 --> M4["Round-robin fallback in generate_completion()"]
+end
+
+%% ====== SUMMARIZATION PIPELINE ======
+subgraph PIPELINE["Summarization Pipeline"]
+    P1["download_and_extract_pdf_text()"]
+    P2["extract_structured_chunks()"]
+    P3["build_chunk_prompt()"]
+    P4["generate_completion()"]
+    P5["parse_llm_response() + extract_json()"]
+    P6["Refinement: build_refine_prompt()"]
+    P7["generate_completion() (final summary)"]
+    
+    P1 --> P2 --> P3 --> P4 --> P5
+    P5 -->|"append relevant notes"| P3
+    P5 -->|"document finished"| P6 --> P7
+end
+
+%% ====== MEMORY LOOP ======
+subgraph MEMORY["Context Memory System"]
+    L1["Short Memory (current chunk notes)"]
+    L2["Long Memory (deque of recent snippets)"]
+    L1 --> L2
+    L2 --> P6
+end
+
+%% ====== OUTPUT ======
+subgraph OUTPUT["Delivery Layer"]
+    O1["format_telegram_message()"]
+    O2["send_telegram()"]
+    O3["save_unprocessed() + update known_ids.json"]
+end
+
+%% ====== CONTROL + RESILIENCE ======
+subgraph CTRL["Control Layer"]
+    C2["asyncio_throttle: rate control"]
+    C3["tenacity: retry + exponential backoff"]
+    C4["AsyncOpenAI Client"]
+end
+P4 -.-> CTRL
+MODELS --> P4
+
+%% ====== CONNECTIONS ======
+C1 -->|PDF link| P1
+P7 --> O1 --> O2
+P7 --> O3
+```
+
+
 ## Usage
 
 1. Run the script:
@@ -77,8 +148,22 @@ daily_paper/
 
 ## Notes
 
+- Model selection uses:
+• description keyword scoring
+• free-only filter
+• highest context length first
+end
+
+- Maintains continuity:
+short-term chunk → deque long-term
+→ contextual refinement summary
+
 - Ensure that your OpenAI API key has sufficient quota for summarization tasks.
+
 - The script uses a retry mechanism for handling API rate limits and timeouts.
+
+
+end
 
 ## License
 
