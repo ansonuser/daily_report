@@ -1,10 +1,11 @@
 # scholar_alert.py
-import requests
+# import requests
 from pathlib import Path
 from bs4 import BeautifulSoup
 import json
 import hashlib
-from datetime import datetime
+from typing import Dict
+import json5
 import fitz
 from openai import AsyncOpenAI
 from openai._exceptions import (
@@ -18,7 +19,7 @@ from dotenv import load_dotenv
 import os
 from io import BytesIO
 import pdb
-import time
+# import time
 import html
 import re
 import asyncio
@@ -67,7 +68,7 @@ def log_retry_error(retry_state: RetryCallState):
     
 
 throttler_query = Throttler(rate_limit=3, period=15)
-throttler_summary = Throttler(rate_limit=20, period=60) # 20 qpm
+throttler_summary = Throttler(rate_limit=18, period=60) # 20 qpm
 throttler_send = Throttler(rate_limit=1, period=1)
 
 
@@ -79,6 +80,7 @@ CHUNK_CHAR_LIMIT = 4000
 MAX_CHUNKS = 6
 LONG_MEMORY_LIMIT = 5
 DAILY_SUMMARY_LIMIT = 10
+MAX_TOKENS = 800
 UNPROCESSED_PATH = folder_path / "unprocessed_papers.json"
 
 
@@ -102,6 +104,33 @@ client = AsyncOpenAI(
     api_key=os.getenv("OPENROUTER_KEY"),
     base_url=os.getenv("API_BASE_URL", "https://openrouter.ai/api/v1")
 )
+
+
+def extract_json(payload: str) -> Dict:
+    """Extract JSON from the model output, tolerating stray text if possible."""
+
+    pattern = r"```json\s*(\{[\s\S]*?\})\s*```"
+    matches = re.findall(pattern, payload, flags=re.MULTILINE)
+    if matches:
+        payload = matches[-1]
+
+    start = payload.find("{")
+    end = payload.rfind("}") + 1
+    if end == 0 and start != -1:
+        payload = payload + "}"
+        end = len(payload)
+    jsonStr = payload[start:end] if start != -1 and end != 0 else ""
+    jsonStr = re.sub(r",\s*([\]}])", r"\1", jsonStr)
+    try:
+        return json5.loads(jsonStr)
+    except (json.JSONDecodeError, ValueError):
+        error_str = "LLM outputted an invalid JSON. Please use a better structured model."
+        print(error_str)
+        print(payload)
+        raise  
+    except Exception as e:
+        print(payload)
+        raise Exception(f"An unexpected error occurred: {str(e)}")
 
 async def is_model_callable(model_id:str)-> bool:
     """Check if a model is callable by making a test API request.
@@ -262,7 +291,7 @@ def extract_structured_chunks(
 
 
 def build_chunk_prompt(
-    query: str = '',
+    questions: str = '',
     previous_keynote: Optional[Deque[str]] = None,
     chunk: str = '',
 ) -> str:
@@ -270,7 +299,8 @@ def build_chunk_prompt(
     previous_keynote = "\n\n".join(previous_keynote) if previous_keynote else "None"
     return dedent(
        f"""
-You are an expert research analyst extracting insights relevant to the research query: "{query}".
+You are an expert research analyst extracting insights to answer the questions: 
+"{questions}".
 
 You are given:
 1. The **keynote from the previous chunk**, summarizing what was discussed earlier.
@@ -284,6 +314,16 @@ Your task:
 - Be concise but technically precise — prefer numeric or mechanistic descriptions over generic phrases.
 - If the chunk contains no new relevant insight, respond with "No new relevant information."
 
+Output JSON Format Only.
+
+Example Output:
+{{
+    'is_relevant' : <true or false>,
+    'notes': <a brief summary of this chunk>
+}}
+
+User Input:
+
 Previous Keynote:
 {previous_keynote}
 
@@ -292,21 +332,33 @@ Current Chunk:
 """)
 
 
-def build_refine_prompt(query: str, memory_snippets: list[str]) -> str:
+def build_refine_prompt( memory_snippets: list[str]) -> str:
     formatted_snippets = "\n\n".join(
         f"Snippet {i + 1}:\n{snippet}" for i, snippet in enumerate(memory_snippets)
     )
     return (
-        f"Using the collected insights below, synthesize a hierarchical summary that answers the query '{query}'. "
+        f"Using the collected insights below, synthesize a hierarchical summary that answers follow the rules below. "
         "Focus on clarity and avoid redundant wording. Provide the output in the following structure:\n"
         "1. Identified Problems\n"
         "2. Solutions to the Problems\n"
         "3. Results and Findings\n"
         "4. Innovations and Contributions\n"
         "5. Philosophical or Physical Implications\n\n"
+        "Each point should have no more than two sub-items."
+        "Each point should have no more than 100 words."
         f"Collected insights:\n{formatted_snippets}"
     )
 
+
+def toknow():
+    prompt = """
+    "1. Identified Problems\n"
+    "2. Solutions to the Problems\n"
+    "3. Results and Findings\n"
+    "4. Innovations and Contributions\n"
+    "5. Philosophical or Physical Implications\n\n"
+    """
+    return dedent(prompt)
 
 @retry(
     wait=wait_exponential_jitter(initial=1, exp_base=2, jitter=2, max=10),
@@ -332,7 +384,8 @@ async def generate_completion(prompt: str, max_tokens: int, throttler: Throttler
     # Then all others in deterministic round-robin order
     for i in range(n_providers):
         provider = providers[(START_IDX + i) % n_providers]
-        candidate_models.extend(FREE_MODELS[provider])
+        for m in FREE_MODELS[provider]:
+            candidate_models.append(m['id'])
 
     for model_id in candidate_models:
         try:
@@ -521,7 +574,7 @@ async def extract_arxiv_papers(throttler=throttler_query, query: str="llm", max_
     return keynotes
 
 
-async def load_and_summarize(pdf_link: str, query: str, max_tokens: int = 300) -> Tuple[str, list[str]]:
+async def load_and_summarize(pdf_link: str, max_tokens: int = 300) -> Tuple[str, list[str]]:
     """Load a PDF from a link and summarize its content through Llms' apis.
 
     Args:
@@ -550,24 +603,25 @@ async def load_and_summarize(pdf_link: str, query: str, max_tokens: int = 300) -
    
         for idx, chunk_info in enumerate(text_chunks):
             prompt = build_chunk_prompt(
-                query,
+                toknow(),
                 memory_queue,
                 chunk_info["content"]
             )
             try:
                 chunk_summary = await generate_completion(prompt, max_tokens=300, throttler=throttler_summary)
+                json_keynotes = extract_json(chunk_summary)
             except Exception as e:
                 print(f"Error summarizing chunk {idx + 1}: {e}")
                 continue
 
-            if chunk_summary:
-                snippet = f"{chunk_info['title']}:\n{chunk_summary}"
+            if json_keynotes["is_relevant"]:
+                snippet = f"short summary:\n{json_keynotes['notes']}"
                 memory_queue.appendleft(snippet)
 
         if not memory_queue:
             return "", []
 
-        refine_prompt = build_refine_prompt(query, list(memory_queue))
+        refine_prompt = build_refine_prompt(list(memory_queue))
         try:
             refined_summary = await generate_completion(refine_prompt, max_tokens=max_tokens, throttler=throttler_summary)
             print("[Info] Refined summary length:", len(refined_summary))
@@ -659,7 +713,7 @@ def format_telegram_message(paper:dict) -> str:
     summary = paper.get("summary")
 
     msg = f"📄 *Title:* {title}\n"
-    msg += f"📝 *Abstract:* {summary}\n"
+    # msg += f"📝 *Abstract:* {summary}\n"
     msg += f"🔗 [PDF Link]({pdf_link})\n"
 
     if summary:
@@ -743,7 +797,7 @@ async def main(queries=["ai agent"], path=folder_path/"known_ids.json"):
         summary_tasks = [
             load_and_summarize(
                 paper["pdf_link"],
-                paper.get("query", queries[0] if queries else ""),
+                max_tokens=MAX_TOKENS
             )
             for _, paper in summary_targets
         ]
@@ -755,9 +809,9 @@ async def main(queries=["ai agent"], path=folder_path/"known_ids.json"):
             print(f"Summary failed for paper {paper.get('title', 'N/A')}: {result}")
             failed_targets.append((p_id, paper))
             continue
-        summary, memory = result
+        summary, _ = result
         paper["summary"] = summary
-        paper["memory_snippets"] = memory
+        # paper["memory_snippets"] = memory
         finalized_papers[p_id] = paper
         finalized_order.append(p_id)
 
