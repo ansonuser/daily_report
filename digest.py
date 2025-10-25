@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 import os
 from io import BytesIO
 import pdb
-# import time
+from  datetime import datetime
 import html
 import re
 import asyncio
@@ -79,7 +79,7 @@ MAX_PAGE = 15
 CHUNK_CHAR_LIMIT = 4000 
 MAX_CHUNKS = 6
 LONG_MEMORY_LIMIT = 5
-DAILY_SUMMARY_LIMIT = 10
+DAILY_SUMMARY_LIMIT = 15
 MAX_TOKENS = 500
 UNPROCESSED_PATH = folder_path / "unprocessed_papers.json"
 
@@ -87,14 +87,13 @@ UNPROCESSED_PATH = folder_path / "unprocessed_papers.json"
 
 FREE_MODELS = get_free_models() # provider : [model1, model2,...]
 
+papers_seen = set()
 
-try: 
-    with open(folder_path/"known_ids.json", "r") as f:
-        HISTORIES = json.load(f)
-        HISTORIES = set(HISTORIES)
-except:
-    pdb.set_trace()
-    HISTORIES = set()
+with open(folder_path/"known_ids.json", "r") as f:
+    histories = json.load(f)
+    for each in histories:
+        papers_seen.add(each[1])
+
     
 START_IDX = 0
 MAX_IDS = 500
@@ -152,17 +151,6 @@ async def is_model_callable(model_id:str)-> bool:
     except Exception as e:
         print(f"Cannot use model {model_id}: {str(e)}")
         return False
-    
-def load_useless(path=folder_path/"useless_models.json") -> dict:
-    """
-    Load a list of models that are not useful for summarization.
-    """
-    if os.path.exists(path):
-        with open(path, "r") as f:
-            return json.load(f)
-    return {}
-    # return ["google/gemini-2.5-pro-exp-03-25"]
-    
 
 def parse_llm_response(resp) -> str:
     """
@@ -459,7 +447,7 @@ async def extract_google_scholar_papers(throttler=throttler_query, query: str="l
     Returns:
         dict: A dictionary containing extracted paper information.
     """
-    global HISTORIES
+    global papers_seen, histories
 
     url = f"https://scholar.google.com/scholar?q={query.replace(' ', '+')}&scisbd=1"
     async with throttler:
@@ -486,12 +474,12 @@ async def extract_google_scholar_papers(throttler=throttler_query, query: str="l
                     curr["title"] = title
                     p_id = hashlib.md5(curr["title"].encode("utf-8")).hexdigest()
                     
-                    if p_id in HISTORIES:
+                    if p_id in papers_seen:
                         continue
                     # pdb.set_trace()
                     
-                    HISTORIES.add(p_id)
-                    
+                    papers_seen.add(p_id)
+                    histories.add((datetime.now().strftime('%Y-%m-%d, %H:%M'), p_id))
                     # Abstract snippet
                     snippet_tag = r.select_one(".gs_rs")
                     snippet = snippet_tag.text.strip() if snippet_tag else "N/A"
@@ -523,7 +511,7 @@ async def extract_arxiv_papers(throttler=throttler_query, query: str="llm", max_
     Returns:
         dict: Dictionary of paper information.
     """
-    global HISTORIES
+    global histories, papers_seen
 
     base_url = "http://export.arxiv.org/api/query?"
     query_params = (
@@ -534,7 +522,7 @@ async def extract_arxiv_papers(throttler=throttler_query, query: str="llm", max_
     url = base_url + query_params
 
     keynotes = {}
-
+    print("Collectiing.....")
     async with throttler:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
@@ -547,12 +535,15 @@ async def extract_arxiv_papers(throttler=throttler_query, query: str="llm", max_
                 # pdb.set_trace()
                 for entry in feed.entries:
                     title = entry.title.strip()
+                    print("title =", title)
                     p_id = hashlib.md5(title.encode("utf-8")).hexdigest()
                     
-                    if p_id in HISTORIES:
+                    if p_id in papers_seen:
+                        print(f"[Info] {title} has been seen.")
                         continue
-                    
-                    HISTORIES.add(p_id)
+                    print(f"[Info] {title} added to watchlist.")
+                    papers_seen.add(p_id)
+                    histories.add((datetime.now().strftime('%Y-%m-%d, %H:%M'), p_id))
 
                     summary = entry.summary.strip()
                     pdf_link = ""
@@ -640,27 +631,6 @@ async def load_and_summarize(pdf_link: str, max_tokens: int = 300) -> Tuple[str,
         print("PDF link: Not available")
         return "", []
     
- 
-
-def load_old_articles(path=folder_path/"known_articles.json"):
-    try:
-        with open(path, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
-    
-def load_old_ids(path=folder_path/"known_ids.json"):
-    try:
-        with open(path, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
-
-
-def save_articles(articles, path=folder_path/"known_articles.json"):
-    with open(path, "w") as f:
-        json.dump(articles, f)
-
 
 def load_unprocessed(path=UNPROCESSED_PATH) -> list:
     try:
@@ -719,7 +689,6 @@ def format_telegram_message(paper:dict) -> str:
     summary = paper.get("summary")
 
     msg = f"📄 *Title:* {title}\n"
-    # msg += f"📝 *Abstract:* {summary}\n"
     msg += f"🔗 [PDF Link]({pdf_link})\n"
 
     if summary:
@@ -817,14 +786,15 @@ async def main(queries=["ai agent"], path=folder_path/"known_ids.json"):
             continue
         summary, _ = result
         paper["summary"] = summary
-        # paper["memory_snippets"] = memory
         finalized_papers[p_id] = paper
         finalized_order.append(p_id)
 
     pending_backlog_entries = backlog_remaining + remaining_new_pdf + failed_targets
+    print("[Info] Saving unprocessed papers to backlog.")
+    pending_backlog_entries = pending_backlog_entries[-MAX_IDS:]
     save_unprocessed([{"id": pid, "paper": paper} for pid, paper in pending_backlog_entries])
 
-    known_ids = sorted(list(HISTORIES))[-MAX_IDS:]
+    known_ids = sorted(list(histories))[-MAX_IDS:]
     with open(path, "w") as f:
         json.dump(known_ids, f, indent=4)
 
