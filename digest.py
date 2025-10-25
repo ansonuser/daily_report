@@ -479,7 +479,7 @@ async def extract_google_scholar_papers(throttler=throttler_query, query: str="l
                     # pdb.set_trace()
                     
                     papers_seen.add(p_id)
-                    histories.add((datetime.now().strftime('%Y-%m-%d, %H:%M'), p_id))
+                    histories.append((datetime.now().strftime('%Y-%m-%d, %H:%M'), p_id))
                     # Abstract snippet
                     snippet_tag = r.select_one(".gs_rs")
                     snippet = snippet_tag.text.strip() if snippet_tag else "N/A"
@@ -543,7 +543,7 @@ async def extract_arxiv_papers(throttler=throttler_query, query: str="llm", max_
                         continue
                     print(f"[Info] {title} added to watchlist.")
                     papers_seen.add(p_id)
-                    histories.add((datetime.now().strftime('%Y-%m-%d, %H:%M'), p_id))
+                    histories.append((datetime.now().strftime('%Y-%m-%d, %H:%M'), p_id))
 
                     summary = entry.summary.strip()
                     pdf_link = ""
@@ -794,7 +794,7 @@ async def main(queries=["ai agent"], path=folder_path/"known_ids.json"):
     pending_backlog_entries = pending_backlog_entries[-MAX_IDS:]
     save_unprocessed([{"id": pid, "paper": paper} for pid, paper in pending_backlog_entries])
 
-    known_ids = sorted(list(histories))[-MAX_IDS:]
+    known_ids = histories[-MAX_IDS:]
     with open(path, "w") as f:
         json.dump(known_ids, f, indent=4)
 
