@@ -534,14 +534,15 @@ async def extract_arxiv_papers(throttler=throttler_query, query: str="llm", max_
                 feed = feedparser.parse(text)
                 # pdb.set_trace()
                 for entry in feed.entries:
-                    title = entry.title.strip()
+                    title = re.sub(r'\s+', ' ', entry.title.strip())
+
                     print("title =", title)
                     p_id = hashlib.md5(title.encode("utf-8")).hexdigest()
                     
                     if p_id in papers_seen:
                         print(f"[Info] {title} has been seen.")
                         continue
-                    print(f"[Info] {title} added to watchlist.")
+                    print(f"[Update] '{title}' added to watchlist.")
                     papers_seen.add(p_id)
                     histories.append((datetime.now().strftime('%Y-%m-%d, %H:%M'), p_id))
 
@@ -808,4 +809,5 @@ async def main(queries=["ai agent"], path=folder_path/"known_ids.json"):
     
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    queries = ['ai agent', 'fog ai']
+    asyncio.run(main(queries))
