@@ -68,7 +68,7 @@ def log_retry_error(retry_state: RetryCallState):
     
 
 throttler_query = Throttler(rate_limit=3, period=15)
-throttler_summary = Throttler(rate_limit=18, period=60) # 20 qpm
+throttler_summary = Throttler(rate_limit=15, period=60) # 20 qpm
 throttler_send = Throttler(rate_limit=1, period=1)
 
 
@@ -378,26 +378,29 @@ async def generate_completion(prompt: str, max_tokens: int, throttler: Throttler
             candidate_models.append(m['id'])
 
     for model_id in candidate_models:
-        try:
-            async with throttler:
-                resp = await client.chat.completions.create(
-                    model=model_id,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=max_tokens,
-                )
-         
-            LAST_WORKING_MODEL = model_id
-            START_IDX = (START_IDX + 1) % n_providers
-            chunk_summary = parse_llm_response(resp)
-            if is_json:
-                return extract_json(chunk_summary)
-            else:
-                return chunk_summary
+        retry_for_each = 3
+        while retry_for_each > 0:
+            try:
+                async with throttler:
+                    resp = await client.chat.completions.create(
+                        model=model_id,
+                        messages=[{"role": "user", "content": prompt}],
+                        max_tokens=max_tokens,
+                    )
+            
+                LAST_WORKING_MODEL = model_id
+                START_IDX = (START_IDX + 1) % n_providers
+                chunk_summary = parse_llm_response(resp)
+                if is_json:
+                    return extract_json(chunk_summary)
+                else:
+                    return chunk_summary
 
-        except Exception as e:
-            print(f"[WARN] {model_id} failed: {e}")
-            await asyncio.sleep(1)  # small cooldown before next model
-            continue
+            except Exception as e:
+                print(f"[WARN] {model_id} failed: {e}")
+                retry_for_each -= 1
+                await asyncio.sleep(1)  # small cooldown before next try
+                continue
     return ""
     
 @retry(
