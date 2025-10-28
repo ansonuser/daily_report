@@ -131,27 +131,6 @@ def extract_json(payload: str) -> Dict:
         print(payload)
         raise Exception(f"An unexpected error occurred: {str(e)}")
 
-async def is_model_callable(model_id:str)-> bool:
-    """Check if a model is callable by making a test API request.
-
-    Args:
-        model_id (str): The ID of the model to check.
-
-    Returns:
-        bool: True if the model is callable, False otherwise.
-    """
-    try:
-        response = await client.chat.completions.create(
-            model=model_id,
-            messages=[{"role": "user", "content": "Say hi"}],
-            max_tokens=5,
-            temperature=0
-        )
-        return True
-    except Exception as e:
-        print(f"Cannot use model {model_id}: {str(e)}")
-        return False
-
 def parse_llm_response(resp) -> str:
     """
     適配新版 openai.ChatCompletion 回傳物件（Pydantic 模型）
