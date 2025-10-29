@@ -7,5 +7,32 @@
             "pdf_link": "http://arxiv.org/pdf/2510.21438v1.pdf",
             "query": "fog ai"
         }
+    },
+    {
+        "id": "c058be4574f2871a3230875661861fdc",
+        "paper": {
+            "title": "Human-AI Collaborative Uncertainty Quantification",
+            "summary": "AI predictive systems are increasingly embedded in decision making pipelines,\nshaping high stakes choices once made solely by humans. Yet robust decisions\nunder uncertainty still rely on capabilities that current AI lacks: domain\nknowledge not captured by data, long horizon context, and reasoning grounded in\nthe physical world. This gap has motivated growing efforts to design\ncollaborative frameworks that combine the complementary strengths of humans and\nAI. This work advances this vision by identifying the fundamental principles of\nHuman AI collaboration within uncertainty quantification, a key component of\nreliable decision making. We introduce Human AI Collaborative Uncertainty\nQuantification, a framework that formalizes how an AI model can refine a human\nexpert's proposed prediction set with two goals: avoiding counterfactual harm,\nensuring the AI does not degrade correct human judgments, and complementarity,\nenabling recovery of correct outcomes the human missed. At the population\nlevel, we show that the optimal collaborative prediction set follows an\nintuitive two threshold structure over a single score function, extending a\nclassical result in conformal prediction. Building on this insight, we develop\npractical offline and online calibration algorithms with provable distribution\nfree finite sample guarantees. The online method adapts to distribution shifts,\nincluding human behavior evolving through interaction with AI, a phenomenon we\ncall Human to AI Adaptation. Experiments across image classification,\nregression, and text based medical decision making show that collaborative\nprediction sets consistently outperform either agent alone, achieving higher\ncoverage and smaller set sizes across various conditions.",
+            "pdf_link": "http://arxiv.org/pdf/2510.23476v1.pdf",
+            "query": "fog ai"
+        }
+    },
+    {
+        "id": "e33f37a847a7b728f37bb4e4fba5adc9",
+        "paper": {
+            "title": "Shareholder Democracy with AI Representatives",
+            "summary": "A large share of retail investors hold public equities through mutual funds,\nyet lack adequate control over these investments. Indeed, mutual funds\nconcentrate voting power in the hands of a few asset managers. These managers\nvote on behalf of shareholders despite having limited insight into their\nindividual preferences, leaving them exposed to growing political and\nregulatory pressures, particularly amid rising shareholder activism.\nPass-through voting has been proposed as a way to empower retail investors and\nprovide asset managers with clearer guidance, but it faces challenges such as\nlow participation rates and the difficulty of capturing highly individualized\nshareholder preferences for each specific vote. Randomly selected assemblies of\nshareholders, or ``investor assemblies,'' have also been proposed as more\nrepresentative proxies than asset managers. As a third alternative, we propose\nartificial intelligence (AI) enabled representatives trained on individual\nshareholder preferences to act as proxies and vote on their behalf. Over time,\nthese models could not only predict how retail investors would vote at any\ngiven moment but also how they might vote if they had significantly more time,\nknowledge, and resources to evaluate each proposal, leading to better overall\ndecision-making. We argue that shareholder democracy offers a compelling\nreal-world test bed for AI-enabled representation, providing valuable insights\ninto both the potential benefits and risks of this approach more generally.",
+            "pdf_link": "http://arxiv.org/pdf/2510.23475v1.pdf",
+            "query": "fog ai"
+        }
+    },
+    {
+        "id": "d91aa33a89a2dac772eccee515c4c8f6",
+        "paper": {
+            "title": "Policy-Aware Generative AI for Safe, Auditable Data Access Governance",
+            "summary": "Enterprises need access decisions that satisfy least privilege, comply with\nregulations, and remain auditable. We present a policy aware controller that\nuses a large language model (LLM) to interpret natural language requests\nagainst written policies and metadata, not raw data. The system, implemented\nwith Google Gemini~2.0 Flash, executes a six-stage reasoning framework (context\ninterpretation, user validation, data classification, business purpose test,\ncompliance mapping, and risk synthesis) with early hard policy gates and deny\nby default. It returns APPROVE, DENY, CONDITIONAL together with cited controls\nand a machine readable rationale. We evaluate on fourteen canonical cases\nacross seven scenario families using a privacy preserving benchmark. Results\nshow Exact Decision Match improving from 10/14 to 13/14 (92.9\\%) after applying\npolicy gates, DENY recall rising to 1.00, False Approval Rate on must-deny\nfamilies dropping to 0, and Functional Appropriateness and Compliance Adherence\nat 14/14. Expert ratings of rationale quality are high, and median latency is\nunder one minute. These findings indicate that policy constrained LLM\nreasoning, combined with explicit gates and audit trails, can translate human\nreadable policies into safe, compliant, and traceable machine decisions.",
+            "pdf_link": "http://arxiv.org/pdf/2510.23474v1.pdf",
+            "query": "fog ai"
+        }
     }
 ]
