@@ -34,5 +34,32 @@
             "pdf_link": "http://arxiv.org/pdf/2510.23474v1.pdf",
             "query": "fog ai"
         }
+    },
+    {
+        "id": "4381759471dca9a640955ba4ea61d536",
+        "paper": {
+            "title": "Detecting the Use of Generative AI in Crowdsourced Surveys: Implications for Data Integrity",
+            "summary": "The widespread adoption of generative AI (GenAI) has introduced new\nchallenges in crowdsourced data collection, particularly in survey-based\nresearch. While GenAI offers powerful capabilities, its unintended use in\ncrowdsourcing, such as generating automated survey responses, threatens the\nintegrity of empirical research and complicates efforts to understand public\nopinion and behavior. In this study, we investigate and evaluate two approaches\nfor detecting AI-generated responses in online surveys: LLM-based detection and\nsignature-based detection. We conducted experiments across seven survey\nstudies, comparing responses collected before 2022 with those collected after\nthe release of ChatGPT. Our findings reveal a significant increase in\nAI-generated responses in the post-2022 studies, highlighting how GenAI may\nsilently distort crowdsourced data. This work raises broader concerns about\nevolving landscape of data integrity, where GenAI can compromise data quality,\nmislead researchers, and influence downstream findings in fields such as\nhealth, politics, and social behavior. By surfacing detection strategies and\nempirical evidence of GenAI's impact, we aim to contribute to ongoing\nconversation about safeguarding research integrity and supporting scholars\nnavigating these methodological and ethical challenges.",
+            "pdf_link": "http://arxiv.org/pdf/2510.24594v1.pdf",
+            "query": "fog ai"
+        }
+    },
+    {
+        "id": "6fba8ec0359696425542c9deeaf8a34c",
+        "paper": {
+            "title": "ReplicationBench: Can AI Agents Replicate Astrophysics Research Papers?",
+            "summary": "Frontier AI agents show increasing promise as scientific research assistants,\nand may eventually be useful for extended, open-ended research workflows.\nHowever, in order to use agents for novel research, we must first assess the\nunderlying faithfulness and correctness of their work. To evaluate agents as\nresearch assistants, we introduce ReplicationBench, an evaluation framework\nthat tests whether agents can replicate entire research papers drawn from the\nastrophysics literature. Astrophysics, where research relies heavily on\narchival data and computational study while requiring little real-world\nexperimentation, is a particularly useful testbed for AI agents in scientific\nresearch. We split each paper into tasks which require agents to replicate the\npaper's core contributions, including the experimental setup, derivations, data\nanalysis, and codebase. Each task is co-developed with the original paper\nauthors and targets a key scientific result, enabling objective evaluation of\nboth faithfulness (adherence to original methods) and correctness (technical\naccuracy of results). ReplicationBench is extremely challenging for current\nfrontier language models: even the best-performing language models score under\n20%. We analyze ReplicationBench trajectories in collaboration with domain\nexperts and find a rich, diverse set of failure modes for agents in scientific\nresearch. ReplicationBench establishes the first benchmark of paper-scale,\nexpert-validated astrophysics research tasks, reveals insights about agent\nperformance generalizable to other domains of data-driven science, and provides\na scalable framework for measuring AI agents' reliability in scientific\nresearch.",
+            "pdf_link": "http://arxiv.org/pdf/2510.24591v1.pdf",
+            "query": "fog ai"
+        }
+    },
+    {
+        "id": "2e28f7665fd1942f7a7e8275d1209ad1",
+        "paper": {
+            "title": "Politically Speaking: LLMs on Changing International Affairs",
+            "summary": "Ask your chatbot to impersonate an expert from Russia and an expert from US\nand query it on Chinese politics. How might the outputs differ? Or, to prepare\nourselves for the worse, how might they converge? Scholars have raised concerns\nLLM based applications can homogenize cultures and flatten perspectives. But\nexactly how much does LLM generated outputs converge despite explicit different\nrole assignment? This study provides empirical evidence to the above question.\nThe critique centres on pretrained models regurgitating ossified political\njargons used in the Western world when speaking about China, Iran, Russian, and\nUS politics, despite changes in these countries happening daily or hourly. The\nexperiments combine role-prompting and similarity metrics. The results show\nthat AI generated discourses from four models about Iran and China are the most\nhomogeneous and unchanging across all four models, including OpenAI GPT, Google\nGemini, Anthropic Claude, and DeepSeek, despite the prompted perspective change\nand the actual changes in real life. This study does not engage with history,\npolitics, or literature as traditional disciplinary approaches would; instead,\nit takes cues from international and area studies and offers insight on the\nfuture trajectory of shifting political discourse in a digital space\nincreasingly cannibalised by AI.",
+            "pdf_link": "http://arxiv.org/pdf/2510.24582v1.pdf",
+            "query": "fog ai"
+        }
     }
 ]
