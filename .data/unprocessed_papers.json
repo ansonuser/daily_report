@@ -61,5 +61,23 @@
             "pdf_link": "http://arxiv.org/pdf/2510.24582v1.pdf",
             "query": "fog ai"
         }
+    },
+    {
+        "id": "6d721f2656aa81f693d77aee8ea5eae6",
+        "paper": {
+            "title": "Communication and Verification in LLM Agents towards Collaboration under Information Asymmetry",
+            "summary": "While Large Language Model (LLM) agents are often approached from the angle\nof action planning/generation to accomplish a goal (e.g., given by language\ndescriptions), their abilities to collaborate with each other to achieve a\njoint goal are not well explored. To address this limitation, this paper\nstudies LLM agents in task collaboration, particularly under the condition of\ninformation asymmetry, where agents have disparities in their knowledge and\nskills and need to work together to complete a shared task. We extend Einstein\nPuzzles, a classical symbolic puzzle, to a table-top game. In this game, two\nLLM agents must reason, communicate, and act to satisfy spatial and relational\nconstraints required to solve the puzzle. We apply a fine-tuning-plus-verifier\nframework in which LLM agents are equipped with various communication\nstrategies and verification signals from the environment. Empirical results\nhighlight the critical importance of aligned communication, especially when\nagents possess both information-seeking and -providing capabilities.\nInterestingly, agents without communication can still achieve high task\nperformance; however, further analysis reveals a lack of true rule\nunderstanding and lower trust from human evaluators. Instead, by integrating an\nenvironment-based verifier, we enhance agents' ability to comprehend task rules\nand complete tasks, promoting both safer and more interpretable collaboration\nin AI systems. https://github.com/Roihn/EinsteinPuzzles",
+            "pdf_link": "http://arxiv.org/pdf/2510.25595v1.pdf",
+            "query": "fog ai"
+        }
+    },
+    {
+        "id": "340b23e525a89bb8580a6b19b4de9c70",
+        "paper": {
+            "title": "Standardization of Psychiatric Diagnoses -- Role of Fine-tuned LLM Consortium and OpenAI-gpt-oss Reasoning LLM Enabled Decision Support System",
+            "summary": "The diagnosis of most mental disorders, including psychiatric evaluations,\nprimarily depends on dialogues between psychiatrists and patients. This\nsubjective process can lead to variability in diagnoses across clinicians and\npatients, resulting in inconsistencies and challenges in achieving reliable\noutcomes. To address these issues and standardize psychiatric diagnoses, we\npropose a Fine-Tuned Large Language Model (LLM) Consortium and OpenAI-gpt-oss\nReasoning LLM-enabled Decision Support System for the clinical diagnosis of\nmental disorders. Our approach leverages fine-tuned LLMs trained on\nconversational datasets involving psychiatrist-patient interactions focused on\nmental health conditions (e.g., depression). The diagnostic predictions from\nindividual models are aggregated through a consensus-based decision-making\nprocess, refined by the OpenAI-gpt-oss reasoning LLM. We propose a novel method\nfor deploying LLM agents that orchestrate communication between the LLM\nconsortium and the reasoning LLM, ensuring transparency, reliability, and\nresponsible AI across the entire diagnostic workflow. Experimental results\ndemonstrate the transformative potential of combining fine-tuned LLMs with a\nreasoning model to create a robust and highly accurate diagnostic system for\nmental health assessment. A prototype of the proposed platform, integrating\nthree fine-tuned LLMs with the OpenAI-gpt-oss reasoning LLM, was developed in\ncollaboration with the U.S. Army Medical Research Team in Norfolk, Virginia,\nUSA. To the best of our knowledge, this work represents the first application\nof a fine-tuned LLM consortium integrated with a reasoning LLM for clinical\nmental health diagnosis paving the way for next-generation AI-powered eHealth\nsystems aimed at standardizing psychiatric diagnoses.",
+            "pdf_link": "http://arxiv.org/pdf/2510.25588v1.pdf",
+            "query": "fog ai"
+        }
     }
 ]
