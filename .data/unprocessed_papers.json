@@ -1,14 +1,5 @@
 [
     {
-        "id": "1c6624ecaf09c770a537a1637ca8f25b",
-        "paper": {
-            "title": "PREVENT: Proactive Risk Evaluation and Vigilant Execution of Tasks for Mobile Robotic Chemists using Multi-Modal Behavior Trees",
-            "summary": "Mobile robotic chemists are a fast growing trend in the field of chemistry\nand materials research. However, so far these mobile robots lack workflow\nawareness skills. This poses the risk that even a small anomaly, such as an\nimproperly capped sample vial could disrupt the entire workflow. This wastes\ntime, and resources, and could pose risks to human researchers, such as\nexposure to toxic materials. Existing perception mechanisms can be used to\npredict anomalies but they often generate excessive false positives. This may\nhalt workflow execution unnecessarily, requiring researchers to intervene and\nto resume the workflow when no problem actually exists, negating the benefits\nof autonomous operation. To address this problem, we propose PREVENT a system\ncomprising navigation and manipulation skills based on a multimodal Behavior\nTree (BT) approach that can be integrated into existing software architectures\nwith minimal modifications. Our approach involves a hierarchical perception\nmechanism that exploits AI techniques and sensory feedback through Dexterous\nVision and Navigational Vision cameras and an IoT gas sensor module for\nexecution-related decision-making. Experimental evaluations show that the\nproposed approach is comparatively efficient and completely avoids both false\nnegatives and false positives when tested in simulated risk scenarios within\nour robotic chemistry workflow. The results also show that the proposed\nmulti-modal perception skills achieved deployment accuracies that were higher\nthan the average of the corresponding uni-modal skills, both for navigation and\nfor manipulation.",
-            "pdf_link": "http://arxiv.org/pdf/2510.21438v1.pdf",
-            "query": "fog ai"
-        }
-    },
-    {
         "id": "c058be4574f2871a3230875661861fdc",
         "paper": {
             "title": "Human-AI Collaborative Uncertainty Quantification",
