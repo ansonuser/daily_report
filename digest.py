@@ -791,5 +791,5 @@ async def main(queries=["ai agent"], path=folder_path/"known_ids.json"):
     
 
 if __name__ == "__main__":
-    queries = ['degitize ecg']
+    queries = ['computer vision']
     asyncio.run(main(queries))
