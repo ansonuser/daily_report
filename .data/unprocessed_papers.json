@@ -1,1 +1,20 @@
-[]
+[
+    {
+        "id": "d51f3b2ba09ad8e708d4329edcd82e6e",
+        "paper": {
+            "title": "On the hyperreal dual Steenrod algebra",
+            "summary": "We compute the dual Steenrod algebra for Bredon homology with constant coefficients $\\underline{\\mathbb Z}$ and $\\underline{\\mathbb Z}/2$ in the category of modules over $MU^{((G))}$, the norm to $G=C_{2^n}$ of $MU_{\\mathbb R}$. Using this and an equivariant version of the Greenlees--Serre spectral sequence, we give a spectral sequence computing the $RO$-graded homotopy of the Eilenberg--Mac Lane spectrum $H\\underline{\\mathbb F}_2\\otimes H\\underline{\\mathbb Z}$.",
+            "pdf_link": "http://arxiv.org/pdf/2602.11010v1.pdf",
+            "query": "computer vision"
+        }
+    },
+    {
+        "id": "0a74f0ce57c2a87469fb95860ed534d8",
+        "paper": {
+            "title": "LaSSM: Efficient Semantic-Spatial Query Decoding via Local Aggregation and State Space Models for 3D Instance Segmentation",
+            "summary": "Query-based 3D scene instance segmentation from point clouds has attained notable performance. However, existing methods suffer from the query initialization dilemma due to the sparse nature of point clouds and rely on computationally intensive attention mechanisms in query decoders. We accordingly introduce LaSSM, prioritizing simplicity and efficiency while maintaining competitive performance. Specifically, we propose a hierarchical semantic-spatial query initializer to derive the query set from superpoints by considering both semantic cues and spatial distribution, achieving comprehensive scene coverage and accelerated convergence. We further present a coordinate-guided state space model (SSM) decoder that progressively refines queries. The novel decoder features a local aggregation scheme that restricts the model to focus on geometrically coherent regions and a spatial dual-path SSM block to capture underlying dependencies within the query set by integrating associated coordinates information. Our design enables efficient instance prediction, avoiding the incorporation of noisy information and reducing redundant computation. LaSSM ranks first place on the latest ScanNet++ V2 leaderboard, outperforming the previous best method by 2.5% mAP with only 1/3 FLOPs, demonstrating its superiority in challenging large-scale scene instance segmentation. LaSSM also achieves competitive performance on ScanNet, ScanNet200, S3DIS and ScanNet++ V1 benchmarks with less computational cost. Extensive ablation studies and qualitative results validate the effectiveness of our design. The code and weights are available at https://github.com/RayYoh/LaSSM.",
+            "pdf_link": "http://arxiv.org/pdf/2602.11007v1.pdf",
+            "query": "computer vision"
+        }
+    }
+]
