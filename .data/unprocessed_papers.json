@@ -1,11 +1,1 @@
-[
-    {
-        "id": "7f14af3b3f6fa97708b685682497006a",
-        "paper": {
-            "title": "Automata Learning with an Incomplete but Inductive Teacher",
-            "summary": "Active automata learning (AAL) under a Minimally Adequate Teacher (MAT) has been successfully used to infer a regular language through membership and equivalence queries. This language might not be fully characterized: we are then interested in finding any solution in a target class of possibly many regular languages. Some problems such as regular language separation or inductive invariant synthesis in the context of regular model checking (RMC) may indeed admit more than one answer. We therefore introduce IdMAT: a new teacher formalism answering queries with respect to any language in the target class, all at once. Such a teacher tailored towards invariant synthesis might provide incomplete \"don't know\" answers, but also inductive facts of the form \"if w1 is accepted, so is w2\". We pair IdMAT with a novel AAL algorithm LIndA that 1. encodes all uncertainties as a unique SAT instance and does not fork, 2. leverages incremental SAT solving and UNSAT core analysis, and 3. handles counterexamples of the simple or inductive type in a frugal manner inspired by the Rivest-Schapire refinement technique. We finally evaluate a prototype implementation in the context of regular language separation and RMC.",
-            "pdf_link": "http://arxiv.org/pdf/2602.21073v1.pdf",
-            "query": "computer vision"
-        }
-    }
-]
+[]
