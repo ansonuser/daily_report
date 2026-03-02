@@ -1,1 +1,20 @@
-[]
+[
+    {
+        "id": "b1a89c6f778c696435022a57f89876df",
+        "paper": {
+            "title": "Adaptive Combinatorial Experimental Design: Pareto Optimality for Decision-Making and Inference",
+            "summary": "In this paper, we provide the first investigation into adaptive combinatorial experimental design, focusing on the trade-off between regret minimization and statistical power in combinatorial multi-armed bandits (CMAB). While minimizing regret requires repeated exploitation of high-reward arms, accurate inference on reward gaps requires sufficient exploration of suboptimal actions. We formalize this trade-off through the concept of Pareto optimality and establish equivalent conditions for Pareto-efficient learning in CMAB. We consider two relevant cases under different information structures, i.e., full-bandit feedback and semi-bandit feedback, and propose two algorithms MixCombKL and MixCombUCB respectively for these two cases. We provide theoretical guarantees showing that both algorithms are Pareto optimal, achieving finite-time guarantees on both regret and estimation error of arm gaps. Our results further reveal that richer feedback significantly tightens the attainable Pareto frontier, with the primary gains arising from improved estimation accuracy under our proposed methods. Taken together, these findings establish a principled framework for adaptive combinatorial experimentation in multi-objective decision-making.",
+            "pdf_link": "http://arxiv.org/pdf/2602.24231v1.pdf",
+            "query": "computer vision"
+        }
+    },
+    {
+        "id": "52203a877ca63e81c0e269138718bdcd",
+        "paper": {
+            "title": "A Variational Estimator for $L_p$ Calibration Errors",
+            "summary": "Calibration$\\unicode{x2014}$the problem of ensuring that predicted probabilities align with observed class frequencies$\\unicode{x2014}$is a basic desideratum for reliable prediction with machine learning systems. Calibration error is traditionally assessed via a divergence function, using the expected divergence between predictions and empirical frequencies. Accurately estimating this quantity is challenging, especially in the multiclass setting. Here, we show how to extend a recent variational framework for estimating calibration errors beyond divergences induced induced by proper losses, to cover a broad class of calibration errors induced by $L_p$ divergences. Our method can separate over- and under-confidence and, unlike non-variational approaches, avoids overestimation. We provide extensive experiments and integrate our code in the open-source package probmetrics (https://github.com/dholzmueller/probmetrics) for evaluating calibration errors.",
+            "pdf_link": "http://arxiv.org/pdf/2602.24230v1.pdf",
+            "query": "computer vision"
+        }
+    }
+]
