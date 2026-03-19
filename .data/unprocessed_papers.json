@@ -1,19 +1,46 @@
 [
     {
+        "id": "14ded3b914c39e955f4820d4801457a8",
+        "paper": {
+            "title": "Unified Spatio-Temporal Token Scoring for Efficient Video VLMs",
+            "summary": "Token pruning is essential for enhancing the computational efficiency of vision-language models (VLMs), particularly for video-based tasks where temporal redundancy is prevalent. Prior approaches typically prune tokens either (1) within the vision transformer (ViT) exclusively for unimodal perception tasks such as action recognition and object segmentation, without adapting to downstream vision-language tasks; or (2) only within the LLM while leaving the ViT output intact, often requiring complex text-conditioned token selection mechanisms. In this paper, we introduce Spatio-Temporal Token Scoring (STTS), a simple and lightweight module that prunes vision tokens across both the ViT and the LLM without text conditioning or token merging, and is fully compatible with end-to-end training. By learning how to score temporally via an auxiliary loss and spatially via LLM downstream gradients, aided by our efficient packing algorithm, STTS prunes 50% of vision tokens throughout the entire architecture, resulting in a 62% improvement in efficiency during both training and inference with only a 0.7% drop in average performance across 13 short and long video QA tasks. Efficiency gains increase with more sampled frames per video. Applying test-time scaling for long-video QA further yields performance gains of 0.5-1% compared to the baseline. Overall, STTS represents a novel, simple yet effective technique for unified, architecture-wide vision token pruning.",
+            "pdf_link": "http://arxiv.org/pdf/2603.18004v1.pdf",
+            "query": "computer vision"
+        }
+    },
+    {
+        "id": "c355203c5e99c900d45f5d8db932c0c5",
+        "paper": {
+            "title": "LoST: Level of Semantics Tokenization for 3D Shapes",
+            "summary": "Tokenization is a fundamental technique in the generative modeling of various modalities. In particular, it plays a critical role in autoregressive (AR) models, which have recently emerged as a compelling option for 3D generation. However, optimal tokenization of 3D shapes remains an open question. State-of-the-art (SOTA) methods primarily rely on geometric level-of-detail (LoD) hierarchies, originally designed for rendering and compression. These spatial hierarchies are often token-inefficient and lack semantic coherence for AR modeling. We propose Level-of-Semantics Tokenization (LoST), which orders tokens by semantic salience, such that early prefixes decode into complete, plausible shapes that possess principal semantics, while subsequent tokens refine instance-specific geometric and semantic details. To train LoST, we introduce Relational Inter-Distance Alignment (RIDA), a novel 3D semantic alignment loss that aligns the relational structure of the 3D shape latent space with that of the semantic DINO feature space. Experiments show that LoST achieves SOTA reconstruction, surpassing previous LoD-based 3D shape tokenizers by large margins on both geometric and semantic reconstruction metrics. Moreover, LoST achieves efficient, high-quality AR 3D generation and enables downstream tasks like semantic retrieval, while using only 0.1%-10% of the tokens needed by prior AR models.",
+            "pdf_link": "http://arxiv.org/pdf/2603.17995v1.pdf",
+            "query": "computer vision"
+        }
+    },
+    {
+        "id": "bd37607974b714c7cf5299b259403c8e",
+        "paper": {
+            "title": "GMT: Goal-Conditioned Multimodal Transformer for 6-DOF Object Trajectory Synthesis in 3D Scenes",
+            "summary": "Synthesizing controllable 6-DOF object manipulation trajectories in 3D environments is essential for enabling robots to interact with complex scenes, yet remains challenging due to the need for accurate spatial reasoning, physical feasibility, and multimodal scene understanding. Existing approaches often rely on 2D or partial 3D representations, limiting their ability to capture full scene geometry and constraining trajectory precision. We present GMT, a multimodal transformer framework that generates realistic and goal-directed object trajectories by jointly leveraging 3D bounding box geometry, point cloud context, semantic object categories, and target end poses. The model represents trajectories as continuous 6-DOF pose sequences and employs a tailored conditioning strategy that fuses geometric, semantic, contextual, and goaloriented information. Extensive experiments on synthetic and real-world benchmarks demonstrate that GMT outperforms state-of-the-art human motion and human-object interaction baselines, such as CHOIS and GIMO, achieving substantial gains in spatial accuracy and orientation control. Our method establishes a new benchmark for learningbased manipulation planning and shows strong generalization to diverse objects and cluttered 3D environments. Project page: https://huajian- zeng.github. io/projects/gmt/.",
+            "pdf_link": "http://arxiv.org/pdf/2603.17993v1.pdf",
+            "query": "computer vision"
+        }
+    },
+    {
+        "id": "9b90f7c5a783c8f640dbbbde7f39cd80",
+        "paper": {
+            "title": "A Single-Fiber Optical Frequency Domain Reflectometry (OFDR)-Based Shape Sensing of Concentric Tube Steerable Drilling Robots",
+            "summary": "This paper introduces a novel shape-sensing approach for Concentric Tube Steerable Drilling Robots (CT-SDRs) based on Optical Frequency Domain Reflectometry (OFDR). Unlike traditional FBG-based methods, OFDR enables continuous strain measurement along the entire fiber length with enhanced spatial resolution. In the proposed method, a Shape Sensing Assembly (SSA) is first fabricated by integrating a single OFDR fiber with a flat NiTi wire. The calibrated SSA is then routed through and housed within the internal channel of a flexible drilling instrument, which is guided by the pre-shaped NiTi tube of the CT-SDR. In this configuration, the drilling instrument serves as a protective sheath for the SSA during drilling, eliminating the need for integration or adhesion to the instrument surface that is typical of conventional optical sensor approaches. The performance of the proposed SSA, integrated within the cannulated CT-SDR, was thoroughly evaluated under free-bending conditions and during drilling along multiple J-shaped trajectories in synthetic Sawbones phantoms. Results demonstrate accurate and reliable shape-sensing capability, confirming the feasibility and robustness of this integration strategy.",
+            "pdf_link": "http://arxiv.org/pdf/2603.17990v1.pdf",
+            "query": "computer vision"
+        }
+    },
+    {
         "id": "0a997d2aaa426158c2bbd15bb2604c3f",
         "paper": {
             "title": "ManiTwin: Scaling Data-Generation-Ready Digital Object Dataset to 100K",
             "summary": "Learning in simulation provides a useful foundation for scaling robotic manipulation capabilities. However, this paradigm often suffers from a lack of data-generation-ready digital assets, in both scale and diversity. In this work, we present ManiTwin, an automated and efficient pipeline for generating data-generation-ready digital object twins. Our pipeline transforms a single image into simulation-ready and semantically annotated 3D asset, enabling large-scale robotic manipulation data generation. Using this pipeline, we construct ManiTwin-100K, a dataset containing 100K high-quality annotated 3D assets. Each asset is equipped with physical properties, language descriptions, functional annotations, and verified manipulation proposals. Experiments demonstrate that ManiTwin provides an efficient asset synthesis and annotation workflow, and that ManiTwin-100K offers high-quality and diverse assets for manipulation data generation, random scene synthesis, and VQA data generation, establishing a strong foundation for scalable simulation data synthesis and policy learning. Our webpage is available at https://manitwin.github.io/.",
             "pdf_link": "http://arxiv.org/pdf/2603.16866v1.pdf",
-            "query": "computer vision"
-        }
-    },
-    {
-        "id": "9edb56f15ec0601d4c4265f7c44abac8",
-        "paper": {
-            "title": "Chronos: Temporal-Aware Conversational Agents with Structured Event Retrieval for Long-Term Memory",
-            "summary": "Recent advances in Large Language Models (LLMs) have enabled conversational AI agents to engage in extended multi-turn interactions spanning weeks or months. However, existing memory systems struggle to reason over temporally grounded facts and preferences that evolve across months of interaction and lack effective retrieval strategies for multi-hop, time-sensitive queries over long dialogue histories. We introduce Chronos, a novel temporal-aware memory framework that decomposes raw dialogue into subject-verb-object event tuples with resolved datetime ranges and entity aliases, indexing them in a structured event calendar alongside a turn calendar that preserves full conversational context. At query time, Chronos applies dynamic prompting to generate tailored retrieval guidance for each question, directing the agent on what to retrieve, how to filter across time ranges, and how to approach multi-hop reasoning through an iterative tool-calling loop over both calendars. We evaluate Chronos with 8 LLMs, both open-source and closed-source, on the LongMemEvalS benchmark comprising 500 questions spanning six categories of dialogue history tasks. Chronos Low achieves 92.60% and Chronos High scores 95.60% accuracy, setting a new state of the art with an improvement of 7.67% over the best prior system. Ablation results reveal the events calendar accounts for a 58.9% gain on the baseline while all other components yield improvements between 15.5% and 22.3%. Notably, Chronos Low alone surpasses prior approaches evaluated under their strongest model configurations.",
-            "pdf_link": "http://arxiv.org/pdf/2603.16862v1.pdf",
             "query": "computer vision"
         }
     }
