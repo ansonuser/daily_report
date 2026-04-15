@@ -1,11 +1,1 @@
-[
-    {
-        "id": "1b349c1b9c3dd580d152e7857597e6a7",
-        "paper": {
-            "title": "On Worst-Case Optimal Polynomial Intersection",
-            "summary": "The Optimal Polynomial Intersection (OPI) problem is the following: Given sets $S_1, \\ldots, S_m \\subseteq \\mathbb{F}$ and evaluation points $a_1, \\ldots, a_m \\in \\mathbb{F}$, find a polynomial $Q \\in \\mathbb{F}[x]$ of degree less than $n$ so that $Q(a_i) \\in S_i$ for as many $i \\in \\{1, 2, \\ldots, m\\}$ as possible. Decoded Quantum Interferometry (DQI) is a quantum algorithm that efficiently returns good solutions to the problem, even on worst-case instances (Jordan et. al., 2025). The quality of the solutions returned follows a semicircle law, which outperforms known efficient classical algorithms. But does DQI obtain the best possible solutions? That is, are there solutions better than the semicircle law for worst-case OPI instances? Surprisingly, before this work, the best existential results coincide with (and follow from) the best algorithmic results.\n  In this work, we show that there are better solutions for worst-case OPI instances over prime fields. In particular, DQI and the semicircle law are not optimal. For example, when the lists $S_i$ have size $\u03c1p$ for $\u03c1\\sim 1/2$, our results imply the existence of a solution that asymptotically beats the semicircle law whenever $n/m \\geq 0.6225$, and we show that an asymptotically perfect solution exists whenever $n/m \\geq 0.7496$. Our results generalize to Max-LINSAT problems derived from any Maximum Distance Separable (MDS) code, and to any $\u03c1\\in (0,1)$. The key insight to our improvement is a connection to local leakage resilience of secret sharing schemes. Along the way, we recover several re-proofs of the existence of solutions achieving the semicircle law.",
-            "pdf_link": "http://arxiv.org/pdf/2604.09533v1.pdf",
-            "query": "computer vision"
-        }
-    }
-]
+[]
